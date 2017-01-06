@@ -11,7 +11,7 @@ Enjoy!
 
 **Prerequisites:**
 
-If you're using a PiTFT, you must have gone through the [Adafruit PiTFT setup instructions](http://learn.adafruit.com/adafruit-pitft-28-inch-resistive-touchscreen-display-raspberry-pi) Otherwise it will work normally with hdmi or rca output.
+If you're using a PiTFT, you must have gone through the [Adafruit PiTFT setup instructions](http://learn.adafruit.com/adafruit-pitft-28-inch-resistive-touchscreen-display-raspberry-pi) otherwise it will work normally with HDMI or RCA output.
 
 You must install sdl1.2 and pygame.
 

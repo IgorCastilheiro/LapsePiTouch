@@ -9,8 +9,6 @@ Read more about this project at [Dave's Blog](http://www.davidhunt.ie/?p=3349)
 
 Enjoy!
 
-![LapsePi Touch](http://www.davidhunt.ie/wp-content/uploads/2014/01/SZ0A4273-Edit.jpg)
-
 **Prerequisites:**
 
 If you're using a PiTFT, you must have gone through the [Adafruit PiTFT setup instructions](http://learn.adafruit.com/adafruit-pitft-28-inch-resistive-touchscreen-display-raspberry-pi) Otherwise it will work normally with hdmi or rca output.

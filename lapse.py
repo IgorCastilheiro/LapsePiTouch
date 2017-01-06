@@ -36,7 +36,7 @@ class Icon:
     def __init__(self, name):
         self.name = name
         try:
-            self.bitmap = pygame.image.load(iconPath + '/' + name + '.png')
+            self.bitmap = pygame.image.load(os.path.join(iconPath, name + '.png'))
         except:
             pass
 
@@ -184,11 +184,11 @@ def valuesCallback(n):  # Pass 1 (next setting) or -1 (prev setting)
     if n == -1:
         screenMode = 0
         saveSettings()
-    # if n == 1:
-    #     dict_idx = 'Pulse'
-    #     numberstring = str(v[dict_idx])
-    #     screenMode = 2
-    #     returnScreen = 1
+    if n == 1:
+        dict_idx = 'Pulse'
+        numberstring = str(v[dict_idx])
+        screenMode = 2
+        returnScreen = 1
     elif n == 2:
         dict_idx = 'Interval'
         numberstring = str(v[dict_idx])
@@ -245,8 +245,8 @@ def timeLapse():
 
     busy = True
 
-    dir = datetime.now().strftime('%Y-%m-%d %H:%M')
-    os.system("mkdir" + dir)
+    dir = os.path.join("/home/pi/LapsePiTouch/", datetime.now().strftime('%Y-%m-%d\ %H:%M'))
+    os.system("mkdir " + dir)
 
     for i in range(1, v['Images'] + 1):
         if busy == False:
@@ -292,7 +292,7 @@ busy = False
 threadExited = False
 screenMode = 0  # Current screen mode; default = viewfinder
 screenModePrior = -1  # Prior screen mode (for detecting changes)
-iconPath = 'icons'  # Subdirectory containing UI bitmaps (PNG format)
+iconPath = '/home/pi/LapsePiTouch/icons'  # Subdirectory containing UI bitmaps (PNG format)
 numeric = 0  # number from numeric keypad
 numberstring = "0"
 # motorRunning = 0
@@ -471,7 +471,7 @@ for s in buttons:  # For each screenful of buttons...
 # loadSettings()  # Must come last; fiddles with Button/Icon states
 
 print "loading background.."
-img = pygame.image.load("icons/LapsePi.png")
+img = pygame.image.load(os.path.join(iconPath,"LapsePi.png"))
 
 if img is None or img.get_height() < 240:  # Letterbox, clear background
     screen.fill(0)
@@ -487,15 +487,21 @@ sleep(2)
 signal.signal(signal.SIGTERM, signal_handler)
 
 print "mainloop.."
-while (True):
+running = True
+while running:
 
     # Process touchscreen input
-    while True:
+    while running:
         for event in pygame.event.get():
             if (event.type is MOUSEBUTTONDOWN):
                 pos = pygame.mouse.get_pos()
                 for b in buttons[screenMode]:
                     if b.selected(pos): break
+            elif event.type == KEYDOWN:
+                if event.key == K_ESCAPE:
+                    running = False  # Be interpreter friendly
+                    pygame.quit()
+                    quit()
             # elif (event.type is MOUSEBUTTONUP):
         # motorRunning = 0
         # gpio.digitalWrite(motorpinA, gpio.LOW)
@@ -520,14 +526,14 @@ while (True):
     if screenMode == 1:
         myfont = pygame.font.SysFont("Arial", 30)
         # label = myfont.render("Pulse:", 1, (255, 255, 255))
-        screen.blit(label, (10, 10))
+        # screen.blit(label, (10, 10))
         label = myfont.render("Interval:", 1, (255, 255, 255))
         screen.blit(label, (10, 70))
         label = myfont.render("Frames:", 1, (255, 255, 255))
         screen.blit(label, (10, 130))
 
         # label = myfont.render(str(v['Pulse']) + "ms", 1, (255, 255, 255))
-        screen.blit(label, (130, 10))
+        # screen.blit(label, (130, 10))
         label = myfont.render(str(v['Interval']) + "ms", 1, (255, 255, 255))
         screen.blit(label, (130, 70))
         label = myfont.render(str(v['Images']), 1, (255, 255, 255))
@@ -536,7 +542,7 @@ while (True):
     if screenMode == 0:
         myfont = pygame.font.SysFont("Arial", 30)
         # label = myfont.render("Pulse:", 1, (255, 255, 255))
-        screen.blit(label, (10, 10))
+        # screen.blit(label, (10, 10))
         label = myfont.render("Interval:", 1, (255, 255, 255))
         screen.blit(label, (10, 50))
         label = myfont.render("Frames:", 1, (255, 255, 255))
@@ -545,7 +551,7 @@ while (True):
         screen.blit(label, (10, 130))
 
         # label = myfont.render(str(v['Pulse']) + "ms", 1, (255, 255, 255))
-        screen.blit(label, (160, 10))
+        # screen.blit(label, (160, 10))
         label = myfont.render(str(v['Interval']) + "ms", 1, (255, 255, 255))
         screen.blit(label, (160, 50))
         label = myfont.render(str(currentframe) + " of " + str(v['Images']), 1, (255, 255, 255))

@@ -12,11 +12,11 @@
 # BSD license, all text above must be included in any redistribution.
 
 # import wiringpi2
-import cPickle as pickle
+import cPickle
 import fnmatch
 import os
-import signal
-import sys
+# import signal
+# import sys
 import threading
 from datetime import datetime, timedelta
 from time import sleep
@@ -37,7 +37,7 @@ class Icon:
         self.name = name
         try:
             self.bitmap = pygame.image.load(os.path.join(iconPath, name + '.png'))
-        except:
+        except IOError:
             pass
 
 
@@ -79,13 +79,13 @@ class Button:
             elif key == 'value':
                 self.value = value
 
-    def selected(self, pos):
+    def selected(self, position):
         x1 = self.rect[0]
         y1 = self.rect[1]
         x2 = x1 + self.rect[2] - 1
         y2 = y1 + self.rect[3] - 1
-        if ((pos[0] >= x1) and (pos[0] <= x2) and
-                (pos[1] >= y1) and (pos[1] <= y2)):
+        if ((position[0] >= x1) and (position[0] <= x2) and
+                (position[1] >= y1) and (position[1] <= y2)):
             if self.callback:
                 if self.value is None:
                     self.callback()
@@ -94,25 +94,25 @@ class Button:
             return True
         return False
 
-    def draw(self, screen):
+    def draw(self, current_screen):
         if self.color:
-            screen.fill(self.color, self.rect)
+            current_screen.fill(self.color, self.rect)
         if self.iconBg:
-            screen.blit(self.iconBg.bitmap,
+            current_screen.blit(self.iconBg.bitmap,
                         (self.rect[0] + (self.rect[2] - self.iconBg.bitmap.get_width()) / 2,
                          self.rect[1] + (self.rect[3] - self.iconBg.bitmap.get_height()) / 2))
         if self.iconFg:
-            screen.blit(self.iconFg.bitmap,
+            current_screen.blit(self.iconFg.bitmap,
                         (self.rect[0] + (self.rect[2] - self.iconFg.bitmap.get_width()) / 2,
                          self.rect[1] + (self.rect[3] - self.iconFg.bitmap.get_height()) / 2))
 
-    def setBg(self, name):
+    def set_bg(self, name):
         if name is None:
             self.iconBg = None
         else:
-            for i in icons:
-                if name == i.name:
-                    self.iconBg = i
+            for button_icon in icons:
+                if name == button_icon.name:
+                    self.iconBg = button_icon
                     break
 
 
@@ -149,22 +149,23 @@ class Button:
 # 			gpio.digitalWrite(motorpinA,gpio.LOW)
 # 			gpio.digitalWrite(motorpinB,gpio.LOW)
 
-def numericCallback(n):  # Pass 1 (next setting) or -1 (prev setting)
+def numeric_callback(n):  # Pass 1 (next setting) or -1 (prev setting)
     global screenMode
-    global numberstring
+    global numberString
+    global numeric
     if n < 10:
-        numberstring = numberstring + str(n)
+        numberString += str(n)
     elif n == 10:
-        numberstring = numberstring[:-1]
+        numberString = numberString[:-1]
     elif n == 11:
         screenMode = 1
     elif n == 12:
         screenMode = returnScreen
-        numeric = int(numberstring)
+        numeric = int(numberString)
         v[dict_idx] = numeric
 
 
-def settingCallback(n):  # Pass 1 (next setting) or -1 (prev setting)
+def setting_callback(n):  # Pass 1 (next setting) or -1 (prev setting)
     global screenMode
     screenMode += n
     if screenMode < 1:
@@ -173,67 +174,67 @@ def settingCallback(n):  # Pass 1 (next setting) or -1 (prev setting)
         screenMode = 1
 
 
-def valuesCallback(n):  # Pass 1 (next setting) or -1 (prev setting)
+def values_callback(n):  # Pass 1 (next setting) or -1 (prev setting)
     global screenMode
     global returnScreen
-    global numberstring
+    global numberString
     global numeric
     global v
     global dict_idx
 
     if n == -1:
         screenMode = 0
-        saveSettings()
+        save_settings()
     if n == 1:
         dict_idx = 'Pulse'
-        numberstring = str(v[dict_idx])
+        numberString = str(v[dict_idx])
         screenMode = 2
         returnScreen = 1
     elif n == 2:
         dict_idx = 'Interval'
-        numberstring = str(v[dict_idx])
+        numberString = str(v[dict_idx])
         screenMode = 2
         returnScreen = 1
     elif n == 3:
         dict_idx = 'Images'
-        numberstring = str(v[dict_idx])
+        numberString = str(v[dict_idx])
         screenMode = 2
         returnScreen = 1
 
 
-def viewCallback(n):  # Viewfinder buttons
+def view_callback(n):  # Viewfinder buttons
     global screenMode, screenModePrior
     if n is 0:  # Gear icon
         screenMode = 1
 
 
-def doneCallback():  # Exit settings
+def done_callback():  # Exit settings
     global screenMode
     if screenMode > 0:
-        saveSettings()
+        save_settings()
     screenMode = 0  # Switch back to main window
 
 
-def startCallback(n):  # start/Stop the timelapse thread
+def start_callback(n):  # start/Stop the timelapse thread
     global t, busy, threadExited
     global currentframe
     if n == 1:
-        if busy == False:
-            if (threadExited == True):
+        if busy:
+            if threadExited:
                 # Re-instanciate the object for the next start
-                t = threading.Thread(target=timeLapse)
+                t = threading.Thread(target=time_lapse)
                 threadExited = False
             t.start()
     if n == 0:
-        if busy == True:
+        if busy:
             busy = False
             t.join()
             currentframe = 0
             # Re-instanciate the object for the next time around.
-            t = threading.Thread(target=timeLapse)
+            t = threading.Thread(target=time_lapse)
 
 
-def timeLapse():
+def time_lapse():
     global v
     global settling_time
     # global shutter_length
@@ -245,18 +246,18 @@ def timeLapse():
 
     busy = True
 
-    dir = os.path.join("/home/pi/LapsePiTouch/", datetime.now().strftime('%Y-%m-%d\ %H:%M'))
-    os.system("mkdir " + dir)
+    photos_dir = os.path.join("/home/pi/LapsePiTouch/", datetime.now().strftime('%Y-%m-%d\ %H:%M'))
+    os.system("mkdir " + photos_dir)
 
-    for i in range(1, v['Images'] + 1):
-        if busy == False:
+    for frame in range(1, v['Images'] + 1):
+        if not busy:
             break
-        currentframe = i
+        currentframe = frame
 
 
         filename = datetime.now().strftime('%H:%M:%S')+".jpg"
 
-        os.system("fswebcam -d /dev/video0 -r 1280x720 --no-banner " + dir + "/" + filename)
+        os.system("fswebcam -d /dev/video0 -r 1280x720 --no-banner " + photos_dir + "/" + filename)
 
         # gpio.digitalWrite(motorpin, gpio.HIGH)
         # pulse = float(v['Pulse']) / 1000.0
@@ -279,22 +280,22 @@ def timeLapse():
     threadExited = True
 
 
-def signal_handler(signal, frame):
-    print 'got SIGTERM'
-    pygame.quit()
-    sys.exit()
+# def signal_handler():
+#     print 'got SIGTERM'
+#     pygame.quit()
+#     sys.exit()
 
 
 # Global stuff -------------------------------------------------------------
 
-t = threading.Thread(target=timeLapse)
+t = threading.Thread(target=time_lapse)
 busy = False
 threadExited = False
 screenMode = 0  # Current screen mode; default = viewfinder
 screenModePrior = -1  # Prior screen mode (for detecting changes)
 iconPath = '/home/pi/LapsePiTouch/icons'  # Subdirectory containing UI bitmaps (PNG format)
 numeric = 0  # number from numeric keypad
-numberstring = "0"
+numberString = "0"
 # motorRunning = 0
 # motorDirection = 0
 returnScreen = 0
@@ -327,9 +328,9 @@ icons = []  # This list gets populated at startup
 buttons = [
 
     # Screen mode 0 is main view screen of current status
-    [Button((5, 180, 120, 60), bg='start', cb=startCallback, value=1),
-     Button((130, 180, 60, 60), bg='cog', cb=viewCallback, value=0),
-     Button((195, 180, 120, 60), bg='stop', cb=startCallback, value=0)],
+    [Button((5, 180, 120, 60), bg='start', cb=start_callback, value=1),
+     Button((130, 180, 60, 60), bg='cog', cb=view_callback, value=0),
+     Button((195, 180, 120, 60), bg='stop', cb=start_callback, value=0)],
 
     # # Screen 1 for changing values and setting motor direction
     # [Button((260, 0, 60, 60), bg='cog', cb=valuesCallback, value=1),
@@ -341,45 +342,47 @@ buttons = [
 
     # Screen 2 for numeric input
     [Button((0, 0, 320, 60), bg='box'),
-     Button((180, 120, 60, 60), bg='0', cb=numericCallback, value=0),
-     Button((0, 180, 60, 60), bg='1', cb=numericCallback, value=1),
-     Button((120, 180, 60, 60), bg='3', cb=numericCallback, value=3),
-     Button((60, 180, 60, 60), bg='2', cb=numericCallback, value=2),
-     Button((0, 120, 60, 60), bg='4', cb=numericCallback, value=4),
-     Button((60, 120, 60, 60), bg='5', cb=numericCallback, value=5),
-     Button((120, 120, 60, 60), bg='6', cb=numericCallback, value=6),
-     Button((0, 60, 60, 60), bg='7', cb=numericCallback, value=7),
-     Button((60, 60, 60, 60), bg='8', cb=numericCallback, value=8),
-     Button((120, 60, 60, 60), bg='9', cb=numericCallback, value=9),
-     Button((240, 120, 80, 60), bg='del', cb=numericCallback, value=10),
-     Button((180, 180, 140, 60), bg='ok', cb=numericCallback, value=12),
-     Button((180, 60, 140, 60), bg='cancel', cb=numericCallback, value=11)]
+     Button((180, 120, 60, 60), bg='0', cb=numeric_callback, value=0),
+     Button((0, 180, 60, 60), bg='1', cb=numeric_callback, value=1),
+     Button((120, 180, 60, 60), bg='3', cb=numeric_callback, value=3),
+     Button((60, 180, 60, 60), bg='2', cb=numeric_callback, value=2),
+     Button((0, 120, 60, 60), bg='4', cb=numeric_callback, value=4),
+     Button((60, 120, 60, 60), bg='5', cb=numeric_callback, value=5),
+     Button((120, 120, 60, 60), bg='6', cb=numeric_callback, value=6),
+     Button((0, 60, 60, 60), bg='7', cb=numeric_callback, value=7),
+     Button((60, 60, 60, 60), bg='8', cb=numeric_callback, value=8),
+     Button((120, 60, 60, 60), bg='9', cb=numeric_callback, value=9),
+     Button((240, 120, 80, 60), bg='del', cb=numeric_callback, value=10),
+     Button((180, 180, 140, 60), bg='ok', cb=numeric_callback, value=12),
+     Button((180, 60, 140, 60), bg='cancel', cb=numeric_callback, value=11)]
 ]
 
 
 # Assorted utility functions -----------------------------------------------
 
 
-def saveSettings():
+def save_settings():
     global v
     try:
         outfile = open('lapse.pkl', 'wb')
         # Use a dictionary (rather than pickling 'raw' values) so
         # the number & order of things can change without breaking.
-        pickle.dump(v, outfile)
+        cPickle.dump(v, outfile)
         outfile.close()
-    except:
+    except IOError:
         pass
 
 
-# def loadSettings(open1=open('lapse.pkl', 'rb')):
-#     global v
-#     try:
-#         infile = open1
-#         v = pickle.load(infile)
-#         infile.close()
-#     except:
-#         pass
+def load_settings():
+    global v
+    if os.path.isfile("lapse.pkl"):
+        try:
+            open1 = open('lapse.pkl', 'rb')
+            infile = open1
+            v = cPickle.load(infile)
+            infile.close()
+        except IOError:
+            pass
 
 
 # Initialization -----------------------------------------------------------
@@ -416,10 +419,10 @@ for driver in drivers:
         os.putenv('SDL_VIDEODRIVER', driver)
     try:
         pygame.display.init()
+        found = True
     except pygame.error:
         print 'Driver: {0} failed.'.format(driver)
         continue
-    found = True
     break
 
 if not found:
@@ -437,9 +440,9 @@ pygame.display.update()
 
 print "Loading Icons..."
 # Load all icons at startup.
-for file in os.listdir(iconPath):
-    if fnmatch.fnmatch(file, '*.png'):
-        icons.append(Icon(file.split('.')[0]))
+for icon in os.listdir(iconPath):
+    if fnmatch.fnmatch(icon, '*.png'):
+        icons.append(Icon(icon.split('.')[0]))
 # Assign Icons to Buttons, now that they're loaded
 print"Assigning Buttons"
 for s in buttons:  # For each screenful of buttons...
@@ -468,7 +471,7 @@ for s in buttons:  # For each screenful of buttons...
 # os.system("echo '1' > /sys/class/gpio/gpio252/value")
 
 # print"Load Settings"
-# loadSettings()  # Must come last; fiddles with Button/Icon states
+load_settings()  # Must come last; fiddles with Button/Icon states
 
 print "loading background.."
 img = pygame.image.load(os.path.join(iconPath,"LapsePi.png"))
@@ -477,14 +480,14 @@ if img is None or img.get_height() < 240:  # Letterbox, clear background
     screen.fill(0)
 if img:
     screen.blit(img,
-                ((320 - img.get_width()) / 2,
-                 (240 - img.get_height()) / 2))
+                ((480 - img.get_width()) / 2,
+                 (320 - img.get_height()) / 2))
 pygame.display.update()
 sleep(2)
 
 # Main loop ----------------------------------------------------------------
 
-signal.signal(signal.SIGTERM, signal_handler)
+# signal.signal(signal.SIGTERM, signal_handler)
 
 print "mainloop.."
 running = True
@@ -493,7 +496,7 @@ while running:
     # Process touchscreen input
     while running:
         for event in pygame.event.get():
-            if (event.type is MOUSEBUTTONDOWN):
+            if event.type is MOUSEBUTTONDOWN:
                 pos = pygame.mouse.get_pos()
                 for b in buttons[screenMode]:
                     if b.selected(pos): break
@@ -521,7 +524,7 @@ while running:
         b.draw(screen)
     if screenMode == 2:
         myfont = pygame.font.SysFont("Arial", 50)
-        label = myfont.render(numberstring, 1, (255, 255, 255))
+        label = myfont.render(numberString, 1, (255, 255, 255))
         screen.blit(label, (10, 2))
     if screenMode == 1:
         myfont = pygame.font.SysFont("Arial", 30)

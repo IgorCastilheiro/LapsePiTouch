@@ -17,7 +17,7 @@ You must install sdl1.2 and pygame.
 
 **Get repo:**
     
-    git clone https://github.com/IgorCastilheiro/LapsePiTouch.git
+    git clone https://github.com/IgorCastilheiro/WebCamLapsePiTouch.git
     
     
 **Usage:**

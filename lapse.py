@@ -138,11 +138,6 @@ def valuesCallback(n): # Pass 1 (next setting) or -1 (prev setting)
 	if n == -1:
 		screenMode = 0
 		saveSettings()
-	if n == 1:
-		dict_idx='Pulse'
-		numberstring = str(v[dict_idx])
-		screenMode = 2
-		returnScreen = 1
 	elif n == 2:
 		dict_idx='Interval'
 		numberstring = str(v[dict_idx])
@@ -190,11 +185,18 @@ def offCallback(): # Turn Off Rasp
 	os.system("sudo halt")
 	raise SystemExit
 
+def render_video(photos_dir):
+	global rendering
+	rendering = True
+	os.system(
+		"avconv -f image2 -i " + photos_dir + "/" + "%07d.jpg -r 12 -s 1920x1080 " + photos_dir + "/" + "timelapse.mp4")
+	rendering = False
+
 def timeLapse():
 	global v
 	global settling_time
 	global rendering
-	global busy, threadExited
+	global busy, threadExited, r
 	global currentframe
 	global error
 
@@ -209,15 +211,14 @@ def timeLapse():
 		currentframe = frame
 
 		filename = str(frame).zfill(7) + ".jpg"
-
 		os.system("fswebcam -d /dev/video0 -r 1920x1080 --no-banner " + photos_dir + "/" + filename)
 
 		sleep(settling_time)
 
 	print("Rendering")
-	rendering = True
-	os.system("avconv -f image2 -i " + photos_dir + "/" + "%07d.jpg -r 12 -s 1920x1080 " + photos_dir + "/" + "timelapse.mp4")
-	rendering = False
+	r = threading.Thread(target=render_video)
+	r.join()
+
 	currentframe = 0
 	busy = False
 	threadExited = True
@@ -225,6 +226,7 @@ def timeLapse():
 # Global stuff -------------------------------------------------------------
 
 t = threading.Thread(target=timeLapse)
+r = threading.Thread(target=render_video)
 busy            = False
 threadExited    = False
 rendering		= False
@@ -235,7 +237,7 @@ numeric         = 0       # number from numeric keypad
 numberstring	= "0"
 returnScreen   = 0
 currentframe   = 0
-settling_time  = 0.2
+settling_time  = 2.3
 interval_delay = 0.2
 dict_idx	   = "Interval"
 v = {

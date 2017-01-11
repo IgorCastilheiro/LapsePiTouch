@@ -12,14 +12,11 @@
 # based on cam.py by Phil Burgess / Paint Your Dragon for Adafruit Industries.
 # BSD license, all text above must be included in any redistribution.
 
-# import wiringpi2
-import cPickle as pickle
+import cPickle
 import fnmatch
 import os
 import pygame
 import threading
-# import time
-# import subprocess
 from pygame.locals import FULLSCREEN, MOUSEBUTTONDOWN, MOUSEBUTTONUP
 from time import sleep
 from datetime import datetime, timedelta
@@ -110,39 +107,6 @@ class Button:
 					self.iconBg = i
 					break
 
-# UI callbacks -------------------------------------------------------------
-# These are defined before globals because they're referenced by items in
-# the global buttons[] list.
-
-# def motorCallback(n): # Pass 1 (next setting) or -1 (prev setting)
-# 	global screenMode
-# 	global motorRunning
-# 	global motorDirection
-# 	global motorpin
-# 	global motorpinA
-# 	global motorpinB
-#
-# 	if n == 1:
-# 		motorDirection = 1
-# 		motorpin = motorpinA
-# 		if motorRunning == 0:
-# 			motorRunning = 1
-# 			gpio.digitalWrite(motorpin,gpio.HIGH)
-# 		else:
-# 			motorRunning = 0
-# 			gpio.digitalWrite(motorpinA,gpio.LOW)
-# 			gpio.digitalWrite(motorpinB,gpio.LOW)
-# 	elif n == 2:
-# 		motorDirection = 0
-# 		motorpin = motorpinB
-# 		if motorRunning == 0:
-# 			motorRunning = 1
-# 			gpio.digitalWrite(motorpin,gpio.HIGH)
-# 		else:
-# 			motorRunning = 0
-# 			gpio.digitalWrite(motorpinA,gpio.LOW)
-# 			gpio.digitalWrite(motorpinB,gpio.LOW)
-
 def numericCallback(n): # Pass 1 (next setting) or -1 (prev setting)
 	global screenMode
 	global numberstring
@@ -230,16 +194,13 @@ def timeLapse():
 	global v
 	global settling_time
 	global rendering
-	# global shutter_length
-	# global motorpin
-	# global backlightpin
 	global busy, threadExited
 	global currentframe
 	global error
 
 	busy = True
 
-	photos_dir = os.path.join("/home/pi/Pictures/timelapse/", datetime.now().strftime('%d-%m-%Y\ %H:%M'))
+	photos_dir = os.path.join("/home/pi/timelapse/", datetime.now().strftime('%d-%m-%Y\ %H:%M'))
 	os.system("sudo mkdir " + photos_dir)
 
 	for frame in range( 1 , v['Images'] + 1 ):
@@ -251,22 +212,8 @@ def timeLapse():
 
 		os.system("fswebcam -d /dev/video0 -r 1920x1080 --no-banner " + photos_dir + "/" + filename)
 
-		# gpio.digitalWrite(motorpin, gpio.HIGH)
-		# pulse = float(v['Pulse']) / 1000.0
-		# sleep(pulse)
-		# gpio.digitalWrite(motorpin, gpio.LOW)
 		sleep(settling_time)
 
-		# # disable the backlight, critical for night timelapses, also saves power
-		# os.system("echo '0' > /sys/class/gpio/gpio252/value")
-		# gpio.digitalWrite(shutterpin, gpio.HIGH)
-		# sleep(shutter_length)
-		# gpio.digitalWrite(shutterpin, gpio.LOW)
-		# #  enable the backlight
-		# os.system("echo '1' > /sys/class/gpio/gpio252/value")
-		# interval = float(v['Interval']) / 1000.0
-		# if (interval > shutter_length):
-		#     sleep(interval - shutter_length)
 	print("Rendering")
 	rendering = True
 	os.system("avconv -f image2 -i " + photos_dir + "/" + "%07d.jpg -r 12 -s 1920x1080 " + photos_dir + "/" + "timelapse.mp4")
@@ -286,23 +233,12 @@ screenModePrior = -1      # Prior screen mode (for detecting changes)
 iconPath        = 'icons' # Subdirectory containing UI bitmaps (PNG format)
 numeric         = 0       # number from numeric keypad
 numberstring	= "0"
-# motorRunning	= 0
-# motorDirection	= 0
 returnScreen   = 0
-# focuspin	   = 31
-# shutterpin	   = 30
-# motorpinA      = 29
-# motorpinB      = 28
-# motorpin       = motorpinA
-# backlightpin   = 252
 currentframe   = 0
-# framecount     = 100
 settling_time  = 0.2
-# shutter_length = 0.2
 interval_delay = 0.2
 dict_idx	   = "Interval"
 v = {
-	# { "Pulse": 100,
 	"Interval": 3000,
 	"Images": 150}
 error = ''
@@ -323,17 +259,15 @@ buttons = [
   [Button((  5,180,60, 60), bg='start', cb=startCallback, value=1),
    Button(( 77,180,60, 60), bg='cog',   cb=viewCallback, value=0),
    Button((150,180,60, 60), bg='stop',  cb=startCallback, value=0),
-   Button((223,180,60, 60), bg='quit', cb=quitCallback),
-   Button((296,180,60, 60), bg='off', cb=offCallback)],
-   # Button((223,180,60, 60), bg='off', cb=offCallback)],
+   # Button((223,180,60, 60), bg='quit', cb=quitCallback),
+   # Button((296,180,60, 60), bg='off', cb=offCallback)],
+   Button((223,180,60, 60), bg='off', cb=offCallback)],
 
   # Screen 1 for changing values and setting motor direction
   # [Button((260,  0, 60, 60), bg='cog',   cb=valuesCallback, value=1),
    [Button((260, 60, 60, 60), bg='cog',   cb=valuesCallback, value=2),
    Button((260,120, 60, 60), bg='cog',   cb=valuesCallback, value=3),
    Button((  0,180,160, 60), bg='ok',    cb=valuesCallback, value=-1),],
-   # Button((160,180, 70, 60), bg='left',  cb=motorCallback, value=1),
-   # Button((230,180, 70, 60), bg='right', cb=motorCallback, value=2)],
 
   # Screen 2 for numeric input
   [Button((  0,  0,320, 60), bg='box'),
@@ -362,7 +296,7 @@ def saveSettings():
 		outfile = open('lapse.pkl', 'wb')
 		# Use a dictionary (rather than pickling 'raw' values) so
 		# the number & order of things can change without breaking.
-		pickle.dump(v, outfile)
+		cPickle.dump(v, outfile)
 		outfile.close()
 	except:
 		pass
@@ -371,7 +305,7 @@ def loadSettings():
 	global v
 	try:
 		infile = open('lapse.pkl', 'rb')
-		v = pickle.load(infile)
+		v = cPickle.load(infile)
 		infile.close()
 	except:
 		pass
@@ -382,15 +316,9 @@ def loadSettings():
 
 # Init framebuffer/touchscreen environment variables
 os.putenv('SDL_VIDEODRIVER', 'fbcon')
-# os.putenv('SDL_FBDEV'      , '/dev/fb1')
-# os.putenv('SDL_MOUSEDRV'   , 'TSLIB')
-# os.putenv('SDL_MOUSEDEV'   , '/dev/input/touchscreen')
-
 # Init pygame and screen
 print ("Initting...")
 pygame.init()
-print("Setting Mouse invisible...")
-#pygame.mouse.set_visible(False)
 print("Setting fullscreen...")
 modes = pygame.display.list_modes(16)
 screen = pygame.display.set_mode(modes[0], FULLSCREEN, 16)
@@ -411,22 +339,6 @@ for s in buttons:        # For each screenful of buttons...
 			if b.fg == i.name:
 				b.iconFg = i
 				b.fg     = None
-
-# Set up GPIO pins
-print("Init GPIO pins...")
-# gpio = wiringpi2.GPIO(wiringpi2.GPIO.WPI_MODE_GPIO)
-# gpio.pinMode(focuspin,gpio.OUTPUT)
-# gpio.pinMode(shutterpin,gpio.OUTPUT)
-# gpio.pinMode(motorpinA,gpio.OUTPUT)
-# gpio.pinMode(motorpinB,gpio.OUTPUT)
-# gpio.pinMode(motorpinB,gpio.OUTPUT)
-# gpio.digitalWrite(motorpinA,gpio.LOW)
-# gpio.digitalWrite(motorpinB,gpio.LOW)
-# I couldnt seem to get at pin 252 for the backlight using the usual method above,
-# but this seems to work
-# os.system("echo 252 > /sys/class/gpio/export")
-# os.system("echo 'out' > /sys/class/gpio/gpio252/direction")
-# os.system("echo '1' > /sys/class/gpio/gpio252/value")
 
 print("Load Settings")
 loadSettings() # Must come last; fiddles with Button/Icon states
@@ -459,8 +371,6 @@ while(True):
 					if b.selected(pos): break
 			elif(event.type is MOUSEBUTTONUP):
 				motorRunning = 0
-				# gpio.digitalWrite(motorpinA,gpio.LOW)
-				# gpio.digitalWrite(motorpinB,gpio.LOW)
 
 		if screenMode >= 0 or screenMode != screenModePrior: break
 
@@ -481,15 +391,11 @@ while(True):
 		screen.blit(label, (10, 2))
 	if screenMode == 1:
 		myfont = pygame.font.SysFont("Arial", 30)
-		# label = myfont.render("Pulse:" , 1, (255,255,255))
-		# screen.blit(label, (10, 10))
 		label = myfont.render("Interval:" , 1, (255,255,255))
 		screen.blit(label, (10, 70))
 		label = myfont.render("Frames:" , 1, (255,255,255))
 		screen.blit(label, (10,130))
 
-		# label = myfont.render(str(v['Pulse']) + "ms" , 1, (255,255,255))
-		# screen.blit(label, (130, 10))
 		label = myfont.render(str(v['Interval']) + "ms" , 1, (255,255,255))
 		screen.blit(label, (130, 70))
 		label = myfont.render(str(v['Images']) , 1, (255,255,255))
@@ -497,8 +403,6 @@ while(True):
 
 	if screenMode == 0:
 		myfont = pygame.font.SysFont("Arial", 30)
-		# label = myfont.render("Pulse:" , 1, (255,255,255))
-		# screen.blit(label, (10, 10))
 		label = myfont.render("Interval:" , 1, (255,255,255))
 		screen.blit(label, (10, 50))
 		label = myfont.render("Frames:" , 1, (255,255,255))
@@ -506,16 +410,17 @@ while(True):
 		label = myfont.render("Remaining:" , 1, (255,255,255))
 		screen.blit(label, (10,130))
 
-		# label = myfont.render(str(v['Pulse']) + "ms" , 1, (255,255,255))
-		# screen.blit(label, (280, 10))
 		label = myfont.render(str(v['Interval']) + "ms" , 1, (255,255,255))
 		screen.blit(label, (280, 50))
 		label = myfont.render(str(currentframe) + " of " + str(v['Images']) , 1, (255,255,255))
 		screen.blit(label, (280, 90))
 
 		if rendering:
-			label = myfont.render("Please wait, Rendering video:", 1, (255, 255, 255))
-			screen.blit(label, (280, 200))
+			label = myfont.render("Please wait, Rendering video...", 1, (255, 255, 255))
+			screen.blit(label, (10, 280))
+		elif busy:
+			label = myfont.render("Recording...", 1, (255, 255, 255))
+			screen.blit(label, (10, 280))
 
 		intervalLength = float((v['Interval'] + (settling_time*1000)))
 		remaining = float((intervalLength * (v['Images'] - currentframe)) / 1000)
